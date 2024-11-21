@@ -29,6 +29,11 @@ o2physics_add_dpl_workflow(task-bplus-reduced
                     PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore
                     COMPONENT_NAME Analysis)
 
+o2physics_add_dpl_workflow(task-bs-reduced
+                    SOURCES taskBsReduced.cxx
+                    PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore
+                    COMPONENT_NAME Analysis)
+
 o2physics_add_dpl_workflow(task-bs
                     SOURCES taskBs.cxx
                     PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore
@@ -47,6 +52,11 @@ o2physics_add_dpl_workflow(task-charm-reso-reduced
 o2physics_add_dpl_workflow(task-d0
                     SOURCES taskD0.cxx
                     PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore
+                    COMPONENT_NAME Analysis)
+
+o2physics_add_dpl_workflow(task-directed-flow-charm-hadrons
+                    SOURCES taskDirectedFlowCharmHadrons.cxx
+                    PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore O2Physics::EventFilteringUtils
                     COMPONENT_NAME Analysis)
 
 o2physics_add_dpl_workflow(task-dplus

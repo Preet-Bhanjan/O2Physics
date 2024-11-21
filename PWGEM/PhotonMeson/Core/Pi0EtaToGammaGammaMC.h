@@ -289,7 +289,6 @@ struct Pi0EtaToGammaGammaMC {
     fEMEventCut.SetRequireGoodZvtxFT0vsPV(eventcuts.cfgRequireGoodZvtxFT0vsPV);
     fEMEventCut.SetRequireEMCReadoutInMB(eventcuts.cfgRequireEMCReadoutInMB);
     fEMEventCut.SetRequireEMCHardwareTriggered(eventcuts.cfgRequireEMCHardwareTriggered);
-    fEMEventCut.SetOccupancyRange(eventcuts.cfgOccupancyMin, eventcuts.cfgOccupancyMax);
   }
 
   void DefinePCMCut()
@@ -384,13 +383,15 @@ struct Pi0EtaToGammaGammaMC {
     const float f = emccuts.EMC_TM_Phi->at(2);
     LOGF(info, "EMCal track matching parameters : a = %f, b = %f, c = %f, d = %f, e = %f, f = %f", a, b, c, d, e, f);
 
+    fEMCCut = EMCPhotonCut("fEMCCut", "fEMCCut");
+
     fEMCCut.SetMinE(emccuts.EMC_minE);
     fEMCCut.SetMinNCell(emccuts.EMC_minNCell);
     fEMCCut.SetM02Range(emccuts.EMC_minM02, emccuts.EMC_maxM02);
     fEMCCut.SetTimeRange(emccuts.EMC_minTime, emccuts.EMC_maxTime);
 
-    fEMCCut.SetTrackMatchingEta([&a, &b, &c](float pT) { return a + pow(pT + b, c); });
-    fEMCCut.SetTrackMatchingPhi([&d, &e, &f](float pT) { return d + pow(pT + e, f); });
+    fEMCCut.SetTrackMatchingEta([a, b, c](float pT) { return a + pow(pT + b, c); });
+    fEMCCut.SetTrackMatchingPhi([d, e, f](float pT) { return d + pow(pT + e, f); });
 
     fEMCCut.SetMinEoverP(emccuts.EMC_Eoverp);
     fEMCCut.SetUseExoticCut(emccuts.EMC_UseExoticCut);
@@ -661,6 +662,7 @@ struct Pi0EtaToGammaGammaMC {
     } // end of collision loop
   }
 
+  Filter collisionFilter_occupancy = eventcuts.cfgOccupancyMin <= o2::aod::evsel::trackOccupancyInTimeRange && o2::aod::evsel::trackOccupancyInTimeRange < eventcuts.cfgOccupancyMax;
   Filter collisionFilter_centrality = (cfgCentMin < o2::aod::cent::centFT0M && o2::aod::cent::centFT0M < cfgCentMax) || (cfgCentMin < o2::aod::cent::centFT0A && o2::aod::cent::centFT0A < cfgCentMax) || (cfgCentMin < o2::aod::cent::centFT0C && o2::aod::cent::centFT0C < cfgCentMax);
   using FilteredMyCollisions = soa::Filtered<MyCollisions>;
 

@@ -16,6 +16,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <numeric>
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
@@ -75,6 +76,7 @@ struct ClusterMonitor {
 
   std::vector<int> mVetoBCIDs;
   std::vector<int> mSelectBCIDs;
+  std::vector<float> mCellTime;
 
   /// \brief Create output histograms and initialize geometry
   void init(InitContext const&)
@@ -94,6 +96,8 @@ struct ClusterMonitor {
     const o2Axis supermoduleAxis{20, -0.5, 19.5, "Supermodule ID"};
     o2Axis timeAxis{mClusterTimeBinning, "t_{cl} (ns)"};
     o2Axis numberClustersAxis{mNumberClusterBinning, "Number of clusters / event"};
+    const AxisSpec thAxisCellTimeDiff{3000, -1500, 1500, "#Delta#it{t}_{cell} (ns)"};
+    const AxisSpec thAxisCellTimeMean{1500, -600, 900, "#LT#it{t}_{cell}#GT (ns)"};
 
     // event properties
     mHistManager.add("eventsAll", "Number of events", o2HistType::kTH1F, {{1, 0.5, 1.5}});
@@ -109,7 +113,6 @@ struct ClusterMonitor {
     mHistManager.add("numberOfClustersSMBC", "number of clusters per supermodule per bunch crossing (ambiguous BCs)", o2HistType::kTH2F, {numberClustersAxis, {20, -0.5, 19.5, "SupermoduleID"}});
 
     // cluster properties (matched clusters)
-    int MaxMatched = 20; // maximum number of matched tracks, hardcoded in emcalCorrectionTask.cxx!
     mHistManager.add("clusterE", "Energy of cluster", o2HistType::kTH1F, {energyAxis});
     mHistManager.add("clusterEMatched", "Energy of cluster (with match)", o2HistType::kTH1F, {energyAxis});
     mHistManager.add("clusterESupermodule", "Energy of the cluster vs. supermoduleID", o2HistType::kTH2F, {energyAxis, supermoduleAxis});
@@ -122,33 +125,8 @@ struct ClusterMonitor {
     mHistManager.add("clusterDistanceToBadChannel", "Distance to bad channel", o2HistType::kTH1F, {{100, 0, 100}});
     mHistManager.add("clusterTimeVsE", "Cluster time vs energy", o2HistType::kTH2F, {timeAxis, energyAxis});
     mHistManager.add("clusterAmpFractionLeadingCell", "Fraction of energy in leading cell", o2HistType::kTH1F, {{100, 0, 1}});
-    mHistManager.add("clusterTM_dEtadPhi", "cluster trackmatching dEta/dPhi;d#it{#eta};d#it{#varphi} (rad)", o2HistType::kTH3F, {{100, -0.4, 0.4}, {100, -0.4, 0.4}, {MaxMatched, 0.5, MaxMatched + 0.5}});               // dEta dPhi of only the Nth clostest track
-    mHistManager.add("clusterTM_dEtadPhi_ASide", "cluster trackmatching in A-Side dEta/dPhi;d#it{#eta};d#it{#varphi} (rad)", o2HistType::kTH2F, {{100, -0.4, 0.4}, {100, -0.4, 0.4}});                                    // dEta dPhi of only the clostest track in A-Aside
-    mHistManager.add("clusterTM_dEtadPhi_CSide", "cluster trackmatching in C-Side tracks dEta/dPhi;d#it{#eta};d#it{#varphi} (rad)", o2HistType::kTH2F, {{100, -0.4, 0.4}, {100, -0.4, 0.4}});                             // dEta dPhi of only the clostest track in C-Side
-    mHistManager.add("clusterTM_PosdEtadPhi", "cluster trackmatching positive tracks dEta/dPhi;d#it{#eta};d#it{#varphi} (rad)", o2HistType::kTH2F, {{100, -0.4, 0.4}, {100, -0.4, 0.4}});                                 // dEta dPhi of only the clostest positive track
-    mHistManager.add("clusterTM_NegdEtadPhi", "cluster trackmatching negative tracks dEta/dPhi;d#it{#eta};d#it{#varphi} (rad)", o2HistType::kTH2F, {{100, -0.4, 0.4}, {100, -0.4, 0.4}});                                 // dEta dPhi of only the clostest negative track
-    mHistManager.add("clusterTM_PosdEtadPhi_Pl0_75", "cluster trackmatching positive tracks, p < 0.75 dEta/dPhi;d#it{#eta};d#it{#varphi} (rad)", o2HistType::kTH2F, {{100, -0.4, 0.4}, {100, -0.4, 0.4}});                // dEta dPhi of only the clostest positive track with p < 0.75 GeV/c
-    mHistManager.add("clusterTM_NegdEtadPhi_Pl0_75", "cluster trackmatching negative tracks, p < 0.75 dEta/dPhi;d#it{#eta};d#it{#varphi} (rad)", o2HistType::kTH2F, {{100, -0.4, 0.4}, {100, -0.4, 0.4}});                // dEta dPhi of only the clostest negative track with p < 0.75 GeV/c
-    mHistManager.add("clusterTM_PosdEtadPhi_0_75leqPl1_25", "cluster trackmatching positive tracks, 0.75 <= p < 1.25 dEta/dPhi;d#it{#eta};d#it{#varphi} (rad)", o2HistType::kTH2F, {{100, -0.4, 0.4}, {100, -0.4, 0.4}}); // dEta dPhi of only the clostest positive track with 0.75 <= p < 1.25 GeV/c
-    mHistManager.add("clusterTM_NegdEtadPhi_0_75leqPl1_25", "cluster trackmatching negative tracks, 0.75 <= p < 1.25 dEta/dPhi;d#it{#eta};d#it{#varphi} (rad)", o2HistType::kTH2F, {{100, -0.4, 0.4}, {100, -0.4, 0.4}}); // dEta dPhi of only the clostest negative track with 0.75 <= p < 1.25 GeV/c
-    mHistManager.add("clusterTM_PosdEtadPhi_Pgeq1_25", "cluster trackmatching positive tracks, p >= 1.25 dEta/dPhi;d#it{#eta};d#it{#varphi} (rad)", o2HistType::kTH2F, {{100, -0.4, 0.4}, {100, -0.4, 0.4}});             // dEta dPhi of only the clostest positive track with p >= 1.25 GeV/c
-    mHistManager.add("clusterTM_NegdEtadPhi_Pgeq1_25", "cluster trackmatching negative tracks, p >= 1.25 dEta/dPhi;d#it{#eta};d#it{#varphi} (rad)", o2HistType::kTH2F, {{100, -0.4, 0.4}, {100, -0.4, 0.4}});             // dEta dPhi of only the clostest negative track with p >= 1.25 GeV/c
-    mHistManager.add("clusterTM_dEtaPt", "cluster trackmatching dEta/#it{p}_{T};d#it{#eta};#it{p}_{T} (GeV/#it{c})", o2HistType::kTH2F, {{100, -0.4, 0.4}, {100, 0.0, 50.}});                                             // dEta vs pT of only the clostest track
-    mHistManager.add("clusterTM_PosdPhiPt", "cluster trackmatching positive tracks dPhi/#it{p}_{T};d#it{#varphi} (rad);#it{p}_{T} (GeV/#it{c})", o2HistType::kTH2F, {{100, -0.4, 0.4}, {100, 0.0, 50.}});                 // dPhi vs pT of only the clostest positive track
-    mHistManager.add("clusterTM_NegdPhiPt", "cluster trackmatching negative tracks dPh/#it{p}_{T}i;d#it{#varphi} (rad);#it{p}_{T} (GeV/#it{c})", o2HistType::kTH2F, {{100, -0.4, 0.4}, {100, 0.0, 50.}});                 // dPhi vs pT of only the clostest negative track
-    mHistManager.add("clusterTM_dEtaTN", "cluster trackmatching dEta/TN;d#it{#eta};#it{N}_{matched tracks}", o2HistType::kTH2F, {{100, -0.4, 0.4}, {MaxMatched, 0.5, MaxMatched + 0.5}});                                 // dEta compared to the Nth closest track
-    mHistManager.add("clusterTM_dPhiTN", "cluster trackmatching dPhi/TN;d#it{#varphi} (rad);#it{N}_{matched tracks}", o2HistType::kTH2F, {{100, -0.4, 0.4}, {MaxMatched, 0.5, MaxMatched + 0.5}});                        // dPhi compared to the Nth closest track
-    mHistManager.add("clusterTM_dRTN", "cluster trackmatching dR/TN;d#it{R};#it{N}_{matched tracks}", o2HistType::kTH2F, {{100, 0.0, 0.4}, {MaxMatched, 0.5, MaxMatched + 0.5}});                                         // dR compared to the Nth closest track
-    mHistManager.add("clusterTM_NTrack", "cluster trackmatching NMatchedTracks", o2HistType::kTH1I, {{11, -0.5, 10.5}});                                                                                                  // how many tracks are matched
-    mHistManager.add("clusterTM_dEtaTNAli", "cluster trackmatching dEta/TN;d#it{#eta};#it{N}_{matched tracks}", o2HistType::kTH2F, {{100, -0.06, 0.06}, {MaxMatched, 0.5, MaxMatched + 0.5}});                            // dEta compared to the Nth closest track with cuts from latest Pi0 Run2 analysis
-    mHistManager.add("clusterTM_dPhiTNAli", "cluster trackmatching dPhi/TN;d#it{#varphi} (rad);#it{N}_{matched tracks}", o2HistType::kTH2F, {{100, -0.1, 0.1}, {MaxMatched, 0.5, MaxMatched + 0.5}});                     // dPhi compared to the Nth closest track with cuts from latest Pi0 Run2 analysis
-    mHistManager.add("clusterTM_dRTNAli", "cluster trackmatching dR/TN;d#it{R};#it{N}_{matched tracks}", o2HistType::kTH2F, {{100, 0.0, 0.1}, {MaxMatched, 0.5, MaxMatched + 0.5}});                                      // dR compared to the Nth closest track with cuts from latest Pi0 Run2 analysis
-    mHistManager.add("clusterTM_NTrackAli", "cluster trackmatching NMatchedTracks", o2HistType::kTH1I, {{11, -0.5, 10.5}});                                                                                               // how many tracks are matched with cuts from latest Pi0 Run2 analysis
-    mHistManager.add("clusterTM_EoverP_E", "cluster E/p (dEtadPhi<0.05);#it{E}_{cluster}/#it{p}_{track};#it{E}_{cluster} (GeV)", o2HistType::kTH3F, {{500, 0, 10}, {200, 0, 100}, {MaxMatched, 0.5, MaxMatched + 0.5}});  // E/p vs p vs # matched track
-    mHistManager.add("clusterTM_EvsP", "cluster E/track p (dEtadPhi<0.05);#it{E}_{cluster} (GeV);#it{p}_{track} (GeV/#it{c})", o2HistType::kTH2F, {{500, 0, 10}, {200, 0, 100}});                                         // E vs p for closest track with dEta,dPhi<0.05
-    mHistManager.add("clusterTM_EoverP_electron", "cluster E/electron p (dEtadPhi<0.05);#it{E}_{cluster} (GeV);#it{p}_{e^{#pm}} (GeV/#it{c})", o2HistType::kTH2F, {{500, 0, 10}, {200, 0, 100}});                         // E over p vs track pT for closest electron/positron track with dEta,dPhi<0.05
-    mHistManager.add("clusterTM_EoverP_hadron", "cluster E/hadron p (dEtadPhi<0.05);#it{E}_{cluster} (GeV);#it{p}_{e^{#pm}} (GeV/#it{c})", o2HistType::kTH2F, {{500, 0, 10}, {200, 0, 100}});                             // E over p vs track pT for closest hadron track with dEta,dPhi<0.05
-    mHistManager.add("clusterTM_EoverP_Pt", "cluster E/track vs track pT (dEtadPhi<0.05);#it{E}_{cluster}/#it{p}_{track};#it{p}_{T,track} (GeV/#it{c})", o2HistType::kTH2F, {{500, 0, 10}, {200, 0, 100}});               // E vs p vs track pTfor closest track with dEta,dPhi<0.05
+    mHistManager.add("clusterCellTimeDiff", "Cell time difference in clusters", o2HistType::kTH1D, {thAxisCellTimeDiff});
+    mHistManager.add("clusterCellTimeMean", "Mean cell time per cluster", o2HistType::kTH1D, {thAxisCellTimeMean});
 
     // add histograms per supermodule
     for (int ism = 0; ism < 20; ++ism) {
@@ -266,11 +244,20 @@ struct ClusterMonitor {
       auto cellsofcluster = emccluscells.sliceBy(perCluster, cluster.globalIndex());
       double maxamp = 0;
       double ampfraction = 0;
+      mCellTime.clear();
+      mCellTime.reserve(cellsofcluster.size());
       for (const auto& cell : cellsofcluster) {
         // example how to get any information of the cell associated with cluster
         LOG(debug) << "Cell ID:" << cell.calo().amplitude() << " Time " << cell.calo().time();
         if (cell.calo().amplitude() > maxamp) {
           maxamp = cell.calo().amplitude();
+        }
+        mCellTime.push_back(cell.calo().time());
+      } // end of loop over cells
+      mHistManager.fill(HIST("clusterCellTimeMean"), std::accumulate(mCellTime.begin(), mCellTime.end(), 0.0f) / mCellTime.size());
+      for (int iCell1 = 0; iCell1 < mCellTime.size() - 1; iCell1++) {
+        for (int iCell2 = iCell1 + 1; iCell2 < mCellTime.size(); iCell2++) {
+          mHistManager.fill(HIST("clusterCellTimeDiff"), mCellTime[iCell1] - mCellTime[iCell2]);
         }
       }
       ampfraction = maxamp / cluster.energy();

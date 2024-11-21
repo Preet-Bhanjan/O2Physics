@@ -65,6 +65,36 @@ class FemtoUniverseMath
     return 0.5 * trackRelK.P();
   }
 
+  /// \tparam T type of tracks
+  /// \param part1 Particle 1
+  /// \param mass1 Mass of particle 1
+  /// \param part2 Particle 2
+  /// \param mass2 Mass of particle 2
+  template <typename T>
+  static float getthetastar(const T& part1, const float mass1, const T& part2, const float mass2)
+  {
+    const ROOT::Math::PtEtaPhiMVector vecpart1(part1.pt(), part1.eta(), part1.phi(), mass1);
+    const ROOT::Math::PtEtaPhiMVector vecpart2(part2.pt(), part2.eta(), part2.phi(), mass2);
+    const ROOT::Math::PtEtaPhiMVector trackSum = vecpart1 + vecpart2;
+
+    const float beta = trackSum.Beta();
+    const float betax = beta * std::cos(trackSum.Phi()) * std::sin(trackSum.Theta());
+    const float betay = beta * std::sin(trackSum.Phi()) * std::sin(trackSum.Theta());
+    const float betaz = beta * std::cos(trackSum.Theta());
+
+    ROOT::Math::PxPyPzMVector PartOneCMS(vecpart1);
+    ROOT::Math::PxPyPzMVector PartTwoCMS(vecpart2);
+
+    const ROOT::Math::Boost boostPRF = ROOT::Math::Boost(-betax, -betay, -betaz);
+    PartOneCMS = boostPRF(PartOneCMS);
+    PartTwoCMS = boostPRF(PartTwoCMS);
+
+    const ROOT::Math::PtEtaPhiMVector PartOneCMSGeo(PartOneCMS);
+    const ROOT::Math::PtEtaPhiMVector PartTwoCMSGeo(PartTwoCMS);
+
+    return (PartOneCMSGeo.Theta() - PartTwoCMSGeo.Theta());
+  }
+
   /// Compute the qij of a pair of particles
   /// \tparam T type of tracks
   /// \param vecparti Particle i PxPyPzMVector
@@ -166,55 +196,56 @@ class FemtoUniverseMath
     const double tPz = trackSum.pz();
     const double tE = trackSum.E();
 
-    double tPt = (tPx * tPx + tPy * tPy);
-    double tMt = (tE * tE - tPz * tPz);
-    double tM = sqrt(tMt - tPt);
-    tMt = sqrt(tMt);
-    tPt = sqrt(tPt);
-
-    double fDKOutLCMS, fDKSideLCMS, fDKLongLCMS;
-    double fDKOut, fDKSide, fDKLong, fDE;
-    double px1LCMS, py1LCMS, pz1LCMS;
-    double px2LCMS, py2LCMS, pz2LCMS;
-    double kstar;
+    const double tPtSq = (tPx * tPx + tPy * tPy);
+    const double tMtSq = (tE * tE - tPz * tPz);
+    const double tM = sqrt(tMtSq - tPtSq);
+    const double tMt = sqrt(tMtSq);
+    const double tPt = sqrt(tPtSq);
 
     // Boost to LCMS
 
     const double beta = tPz / tE;
     const double gamma = tE / tMt;
 
-    fDKOut = (part1.px() * tPx + part1.py() * tPy) / tPt;
-    fDKSide = (-part1.px() * tPy + part1.py() * tPx) / tPt;
-    fDKLong = gamma * (part1.pz() - beta * E1);
-    fDE = gamma * (E1 - beta * part1.pz());
+    const double fDKOut = (part1.px() * tPx + part1.py() * tPy) / tPt;
+    const double fDKSide = (-part1.px() * tPy + part1.py() * tPx) / tPt;
+    const double fDKLong = gamma * (part1.pz() - beta * E1);
+    const double fDE = gamma * (E1 - beta * part1.pz());
 
-    px1LCMS = fDKOut;
-    py1LCMS = fDKSide;
-    pz1LCMS = fDKLong;
-    // pE1LCMS = fDE;
+    const double px1LCMS = fDKOut;
+    const double py1LCMS = fDKSide;
+    const double pz1LCMS = fDKLong;
+    const double pE1LCMS = fDE;
 
-    px2LCMS = (part2.px() * tPx + part2.py() * tPy) / tPt;
-    py2LCMS = (part2.py() * tPx - part2.px() * tPy) / tPt;
-    pz2LCMS = gamma * (part2.pz() - beta * E2);
-    // pE2LCMS = gamma * (E2 - beta * part2.pz());
+    const double px2LCMS = (part2.px() * tPx + part2.py() * tPy) / tPt;
+    const double py2LCMS = (part2.py() * tPx - part2.px() * tPy) / tPt;
+    const double pz2LCMS = gamma * (part2.pz() - beta * E2);
+    const double pE2LCMS = gamma * (E2 - beta * part2.pz());
 
-    fDKOutLCMS = px1LCMS - px2LCMS;
-    fDKSideLCMS = py1LCMS - py2LCMS;
-    fDKLongLCMS = pz1LCMS - pz2LCMS;
+    const double fDKOutLCMS = px1LCMS - px2LCMS;
+    const double fDKSideLCMS = py1LCMS - py2LCMS;
+    const double fDKLongLCMS = pz1LCMS - pz2LCMS;
 
     // Boost to PRF
 
     const double betaOut = tPt / tMt;
     const double gammaOut = tMt / tM;
 
-    fDKOut = gammaOut * (fDKOut - betaOut * fDE);
-    kstar = sqrt(fDKOut * fDKOut + fDKSide * fDKSide + fDKLong * fDKLong);
+    const double fDKOutPRF = gammaOut * (fDKOutLCMS - betaOut * (pE1LCMS - pE2LCMS));
+    const double fDKSidePRF = fDKSideLCMS;
+    const double fDKLongPRF = fDKLongLCMS;
+    const double fKOut = gammaOut * (fDKOut - betaOut * fDE);
+
+    const double qlcms = sqrt(fDKOutLCMS * fDKOutLCMS + fDKSideLCMS * fDKSideLCMS + fDKLongLCMS * fDKLongLCMS);
+    const double qinv = sqrt(fDKOutPRF * fDKOutPRF + fDKSidePRF * fDKSidePRF + fDKLongPRF * fDKLongPRF);
+    const double kstar = sqrt(fKOut * fKOut + fDKSide * fDKSide + fDKLong * fDKLong);
 
     if (isiden) {
-      vect.push_back(2.0 * (kstar));
+      vect.push_back(qinv);
       vect.push_back(fDKOutLCMS);
       vect.push_back(fDKSideLCMS);
       vect.push_back(fDKLongLCMS);
+      vect.push_back(qlcms);
     } else {
       vect.push_back(kstar);
       vect.push_back(fDKOut);
