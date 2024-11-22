@@ -199,7 +199,7 @@ void FillProfile(const GFW::CorrConfig& corrconf, const ConstStr<chars...>& tarN
         histos.fill(tarName,cent,val,dnx);
       return;
     };
-    if(cent < 0 || cent >= 5) return;
+    //if(cent < 0 || cent >= 5) return;
     for(Int_t i=1;i<=fPtAxis->GetNbins();i++) {
       dnx = fGFW->Calculate(corrconf,i-1,kTRUE).real();
       if(dnx==0) continue;
