@@ -58,11 +58,11 @@ struct testgf{
   ConfigurableAxis axisVertex{"axisVertex", {20, -10, 10}, "vertex axis for histograms"};
   ConfigurableAxis axisPhi{"axisPhi", {60, 0.0, constants::math::TwoPI}, "phi axis for histograms"};
   ConfigurableAxis axisEta{"axisEta", {40, -1., 1.}, "eta axis for histograms"};
-  ConfigurableAxis axisPt{"axisPt", {VARIABLE_WIDTH, 0.2, 0.25, 0.30, 0.40, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95, 1.00, 1.10, 1.20, 1.30, 1.40, 1.50, 1.60, 1.70, 1.80, 1.90, 2.00, 2.20, 2.40, 2.60, 2.80, 3.00}, "pt axis for histograms"};
+  ConfigurableAxis axisPt{"axisPt", {VARIABLE_WIDTH, 0.2, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 1.00, 1.20, 1.40, 1.60, 1.80, 2.00, 2.20, 2.40, 2.60, 2.80, 3.00, 3.50, 4.00, 5.00, 6.00, 8.00, 10.00}, "pt axis for histograms"};
   ConfigurableAxis axisMultiplicity{"axisMultiplicity", {VARIABLE_WIDTH, 0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90}, "centrality axis for histograms"};
 
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
-  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::pt > cfgCutPtMin) && (aod::track::pt < cfgCutPtMax)
+  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::pt > cfgCutPtPOIMin) && (aod::track::pt < cfgCutPtPOIMax)
    && ((requireGlobalTrackInFilter()) || (aod::track::isGlobalTrackSDD == (uint8_t) true)) && (aod::track::tpcChi2NCl < cfgCutChi2prTPCcls);
   
   OutputObj<FlowContainer> fFC{FlowContainer("FlowContainer")};
@@ -87,6 +87,7 @@ struct testgf{
     histos.add("hVtxZ", "", {HistType::kTH1D, {axisVertex}});
     histos.add("hMult", "", {HistType::kTH1D, {{3000,0.5,3000.5}}});
     histos.add("hCent", "", {HistType::kTH1D, {{90,0,90}}});
+    histos.add("hPt", "", {HistType::kTH1D, {axisPt}});
    
     histos.add("c22_gap08", "", {HistType::kTProfile, {axisMultiplicity}});
     histos.add("c22_gap08_pi", "", {HistType::kTProfile, {axisMultiplicity}});
@@ -172,14 +173,9 @@ struct testgf{
     std::pair<int, int> idprob = GivebayesID(track);
     if(idprob.first == 0 || idprob.first == 1 || idprob.first == 2){ // 0 = pion, 1 = kaon, 2 = proton
       pidID = idprob.first;
-      //std::cout<<"pidid  ==  "<<pidID<<"  prob ==  "<<idprob.second<<"  maxprob  ==  "<<maxProb[pidID]<<std::endl;
       float nsigmaTPC[3] = {track.tpcNSigmaPi(),track.tpcNSigmaKa(),track.tpcNSigmaPr()};
-      //float nsigmaTOF[3] = {track.tofNSigmaPi(),track.tofNSigmaKa(),track.tofNSigmaPr()};
       if(idprob.second > maxProb[pidID]) {
-          //std::cout<<"Inside loop pidid  ==  "<<pidID<<std::endl;
 	        if(abs(nsigmaTPC[pidID]) > 3) return 0;
-          //if(abs(nsigmaTOF[pidID]) > 3) return 0;
-          //std::cout<<"yayy  ==  "<<pidID<<std::endl;
 	        return pidID+1; //shift the pid by 1, 1 = pion, 2 = kaon, 3 = proton
       }
       else return 0;
@@ -199,7 +195,6 @@ void FillProfile(const GFW::CorrConfig& corrconf, const ConstStr<chars...>& tarN
         histos.fill(tarName,cent,val,dnx);
       return;
     };
-    //if(cent < 0 || cent >= 5) return;
     for(Int_t i=1;i<=fPtAxis->GetNbins();i++) {
       dnx = fGFW->Calculate(corrconf,i-1,kTRUE).real();
       if(dnx==0) continue;
@@ -214,34 +209,23 @@ void FillProfile(const GFW::CorrConfig& corrconf, const ConstStr<chars...>& tarN
   {
     double dnx, val;
     dnx = fGFW->Calculate(corrconf, 0, kTRUE).real();
-    //std::cout<<"Step 1 "<<corrconf.Head.c_str()<<" "<<corrconf.pTDif<<std::endl;
     if (dnx == 0) {
-      //std::cout<<"  dnx == "<<dnx<<std::endl;
       return;
     }
-    //std::cout<<"Step 2"<<std::endl;
     if (!corrconf.pTDif) {
       val = fGFW->Calculate(corrconf, 0, kFALSE).real() / dnx;
-     // std::cout<<"Step 3"<<std::endl;
-      //std::cout<<"ref val  == "<<val<<std::endl;
       if (TMath::Abs(val) < 1) {
-       // std::cout<<"Step 4"<<std::endl;
         fFC->FillProfile(corrconf.Head.c_str(), cent, val, dnx, rndm);
       }
       return;
     }
-    //std::cout<<"Step 5"<<std::endl;
     for (Int_t i = 1; i <= fPtAxis->GetNbins(); i++) {
-      //std::cout<<"In the for loop"<<std::endl;
       dnx = fGFW->Calculate(corrconf, i - 1, kTRUE).real();
-      //std::cout<<"     diff dnx  == "<<dnx;
       if (dnx == 0)
         continue;
       val = fGFW->Calculate(corrconf, i - 1, kFALSE).real() / dnx;
-      //std::cout<<"  new val  == "<<val;
       if (TMath::Abs(val) < 1)
         fFC->FillProfile(Form("%s_pt_%i", corrconf.Head.c_str(), i), cent, val, dnx, rndm);
-      //std::cout<<"  corrhead  == "<<corrconf.Head.c_str()<<std::endl;
     }
     return;
   }
@@ -267,14 +251,12 @@ void FillProfile(const GFW::CorrConfig& corrconf, const ConstStr<chars...>& tarN
       double pt = track.pt();
       histos.fill(HIST("hPhi"), track.phi());
       histos.fill(HIST("hEta"), track.eta());
+      histos.fill(HIST("hPt"), pt);
 
       bool WithinPtPOI = (cfgCutPtPOIMin<pt) && (pt<cfgCutPtPOIMax); //within POI pT range
       bool WithinPtRef  = (cfgCutPtMin<pt) && (pt<cfgCutPtMax);  //within RF pT range
 
       pidIndex = GetBayesPIDIndex(track);
-      //std::cout<<"PID   ===   "<<pidIndex<<std::endl;
-
-      //if(pidIndex) fGFW->Fill(track.eta(), 1, track.phi(), wacc * weff, 1<<(pidIndex+1));
 
       if(WithinPtRef) fGFW->Fill(track.eta(), fPtAxis->FindBin(pt)-1, track.phi(), wacc * weff, 1);
       if(WithinPtPOI) fGFW->Fill(track.eta(), fPtAxis->FindBin(pt)-1, track.phi(), wacc * weff, 128);
