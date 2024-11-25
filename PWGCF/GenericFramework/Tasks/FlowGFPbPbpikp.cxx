@@ -1,3 +1,15 @@
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+
 #include <CCDB/BasicCCDBManager.h>
 #include <cmath>
 #include "Framework/runDataProcessing.h"
@@ -40,12 +52,12 @@ using namespace o2::framework::expressions;
 
 #define O2_DEFINE_CONFIGURABLE(NAME, TYPE, DEFAULT, HELP) Configurable<TYPE> NAME{#NAME, DEFAULT, HELP};
 
-struct testgf{ 
+struct testgf{
   Service<ccdb::BasicCCDBManager> ccdb;
   Configurable<long> nolaterthan{"ccdb-no-later-than", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count(), "latest acceptable timestamp of creation for the object"};
   Configurable<std::string> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "url of the ccdb repository"};
-
- O2_DEFINE_CONFIGURABLE(cfgCutVertex, float, 10.0f, "Accepted z-vertex range")
+  
+  O2_DEFINE_CONFIGURABLE(cfgCutVertex, float, 10.0f, "Accepted z-vertex range")
   O2_DEFINE_CONFIGURABLE(cfgCutPtPOIMin, float, 0.2f, "Minimal pT for poi tracks")
   O2_DEFINE_CONFIGURABLE(cfgCutPtPOIMax, float, 10.0f, "Maximal pT for poi tracks")
   O2_DEFINE_CONFIGURABLE(cfgCutPtMin, float, 0.2f, "Minimal pT for ref tracks")
@@ -67,12 +79,12 @@ struct testgf{
   
   OutputObj<FlowContainer> fFC{FlowContainer("FlowContainer")};
   HistogramRegistry histos{"histos", {}, OutputObjHandlingPolicy::AnalysisObject};
-  
+
   GFW* fGFW = new GFW();
   std::vector<GFW::CorrConfig> corrconfigs;
   TAxis* fPtAxis;
   TRandom3* fRndm = new TRandom3(0);
-
+  
   using aodCollisions = soa::Filtered<soa::Join<aod::Collisions, aod::EvSels, aod::FT0Mults, aod::MultZeqs, aod::CentFT0Ms, aod::CentFT0As, aod::CentFT0Cs>>;
   using aodTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection, aod::TracksExtra, aod::pidBayes, aod::pidBayesPi, aod::pidBayesKa, aod::pidBayesPr, aod::pidTPCFullPi, aod::pidTPCFullKa, aod::pidTPCFullPr,aod::pidTOFFullPi, aod::pidTOFFullKa, aod::pidTOFFullPr>>;
 
@@ -88,19 +100,17 @@ struct testgf{
     histos.add("hMult", "", {HistType::kTH1D, {{3000,0.5,3000.5}}});
     histos.add("hCent", "", {HistType::kTH1D, {{90,0,90}}});
     histos.add("hPt", "", {HistType::kTH1D, {axisPt}});
-   
     histos.add("c22_gap08", "", {HistType::kTProfile, {axisMultiplicity}});
     histos.add("c22_gap08_pi", "", {HistType::kTProfile, {axisMultiplicity}});
     histos.add("c22_gap08_ka", "", {HistType::kTProfile, {axisMultiplicity}});
     histos.add("c22_gap08_pr", "", {HistType::kTProfile, {axisMultiplicity}});
-    
 
     o2::framework::AxisSpec axis = axisPt;
     int nPtBins = axis.binEdges.size()-1;
     double* PtBins= &(axis.binEdges)[0];
     fPtAxis = new TAxis(nPtBins,PtBins);
-
-    TObjArray* oba = new TObjArray();
+    
+    sTObjArray* oba = new TObjArray();
     oba->Add(new TNamed("Ch08Gap22", "Ch08Gap22"));  
     for(Int_t i=0;i<fPtAxis->GetNbins();i++)
       oba->Add(new TNamed(Form("Ch08Gap22_pt_%i",i+1),"Ch08Gap22_pTDiff"));
@@ -162,7 +172,6 @@ struct testgf{
             prob = bayesprobs[i];
         }
     }
-
     return std::make_pair(bayesid, prob);
 }
 
@@ -183,7 +192,7 @@ struct testgf{
     return 0;
   }
   
-  template<char... chars>
+template<char... chars>
 void FillProfile(const GFW::CorrConfig& corrconf, const ConstStr<chars...>& tarName, const double& cent)
   {
     double dnx, val;
@@ -257,7 +266,6 @@ void FillProfile(const GFW::CorrConfig& corrconf, const ConstStr<chars...>& tarN
       bool WithinPtRef  = (cfgCutPtMin<pt) && (pt<cfgCutPtMax);  //within RF pT range
 
       pidIndex = GetBayesPIDIndex(track);
-
       if(WithinPtRef) fGFW->Fill(track.eta(), fPtAxis->FindBin(pt)-1, track.phi(), wacc * weff, 1);
       if(WithinPtPOI) fGFW->Fill(track.eta(), fPtAxis->FindBin(pt)-1, track.phi(), wacc * weff, 128);
       if(WithinPtPOI && WithinPtRef) fGFW->Fill(track.eta(), fPtAxis->FindBin(pt)-1, track.phi(), wacc * weff, 256);
@@ -274,13 +282,11 @@ void FillProfile(const GFW::CorrConfig& corrconf, const ConstStr<chars...>& tarN
     FillProfile(corrconfigs.at(2), HIST("c22_gap08_ka"), cent);
     FillProfile(corrconfigs.at(3), HIST("c22_gap08_pr"), cent);
 
-
     for (uint l_ind = 0; l_ind < corrconfigs.size(); l_ind++) {
       FillFC(corrconfigs.at(l_ind), cent, l_Random);
     }
   
   }//end of process
-  
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
