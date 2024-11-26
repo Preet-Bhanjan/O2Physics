@@ -9,9 +9,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <TProfile.h>
+#include <TRandom3.h>
+#include "TList.h"
+#include <iostream>
+#include <utility>
+#include <array>
+#include <cmath>
+#include <string>
+#include <vector>
 
 #include <CCDB/BasicCCDBManager.h>
-#include <cmath>
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/ASoAHelpers.h"
@@ -28,11 +36,7 @@
 #include "PWGCF/GenericFramework/Core/GFW.h"
 #include "PWGCF/GenericFramework/Core/GFWCumulant.h"
 #include "FlowContainer.h"
-#include "TList.h"
-#include <TProfile.h>
-#include <TRandom3.h>
 
-#include <iostream>
 #include "Common/Core/trackUtilities.h"
 #include "Common/DataModel/Multiplicity.h"
 #include "Common/DataModel/PIDResponse.h"
@@ -41,10 +45,6 @@
 #include "Framework/StepTHn.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/PID.h"
-
-#include <utility>
-#include <array>
-
 
 using namespace o2;
 using namespace o2::framework;
@@ -187,7 +187,9 @@ struct testgf{
 	        if(abs(nsigmaTPC[pidID]) > 3) return 0;
 	        return pidID+1; //shift the pid by 1, 1 = pion, 2 = kaon, 3 = proton
       }
-      else return 0;
+      else {
+		return 0;
+      }
     }
     return 0;
   }
@@ -203,14 +205,14 @@ void FillProfile(const GFW::CorrConfig& corrconf, const ConstStr<chars...>& tarN
       if(TMath::Abs(val)<1)
         histos.fill(tarName,cent,val,dnx);
       return;
-    };
+    }
     for(Int_t i=1;i<=fPtAxis->GetNbins();i++) {
       dnx = fGFW->Calculate(corrconf,i-1,kTRUE).real();
       if(dnx==0) continue;
       val = fGFW->Calculate(corrconf,i-1,kFALSE).real()/dnx;
       if(TMath::Abs(val)<1)
         histos.fill(tarName,fPtAxis->GetBinCenter(i),val,dnx);
-    };
+    }
     return;
   }
   
