@@ -10,40 +10,41 @@
 // or submit itself to any jurisdiction.
 
 #include <cmath>
+#include <vector>
 #include <iostream>
 #include <utility>
 #include <array>
 #include <string>
-#include <vector>
 
-#include <TProfile.h>
-#include <TRandom3.h>
-#include "TList.h"
 #include <CCDB/BasicCCDBManager.h>
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/ASoAHelpers.h"
 #include "Framework/RunningWorkflowInfo.h"
 #include "Framework/HistogramRegistry.h"
+#include "Framework/AnalysisDataModel.h"
+#include "Framework/StepTHn.h"
 
 #include "Common/DataModel/EventSelection.h"
 #include "Common/Core/TrackSelection.h"
 #include "Common/DataModel/TrackSelectionTables.h"
 #include "Common/DataModel/Centrality.h"
 #include "Common/DataModel/PIDResponse.h"
+#include "Common/Core/trackUtilities.h"
+#include "Common/DataModel/Multiplicity.h"
+#include "CommonConstants/PhysicsConstants.h"
 
 #include "PWGCF/GenericFramework/Core/GFWPowerArray.h"
 #include "PWGCF/GenericFramework/Core/GFW.h"
 #include "PWGCF/GenericFramework/Core/GFWCumulant.h"
 #include "FlowContainer.h"
 
-#include "Common/Core/trackUtilities.h"
-#include "Common/DataModel/Multiplicity.h"
-#include "CommonConstants/PhysicsConstants.h"
-#include "Framework/AnalysisDataModel.h"
-#include "Framework/StepTHn.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/PID.h"
+
+#include <TProfile.h>
+#include <TRandom3.h>
+#include "TList.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -53,7 +54,7 @@ using namespace o2::framework::expressions;
 
 struct testgf{
   Service<ccdb::BasicCCDBManager> ccdb;
-  Configurable<long> nolaterthan{"ccdb-no-later-than", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count(), "latest acceptable timestamp of creation for the object"};
+  Configurable<int64_t> nolaterthan{"ccdb-no-later-than", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count(), "latest acceptable timestamp of creation for the object"};
   Configurable<std::string> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "url of the ccdb repository"};
   
   O2_DEFINE_CONFIGURABLE(cfgCutVertex, float, 10.0f, "Accepted z-vertex range")
@@ -64,7 +65,7 @@ struct testgf{
   O2_DEFINE_CONFIGURABLE(cfgCutEta, float, 0.8f, "Eta range for tracks")
   O2_DEFINE_CONFIGURABLE(cfgCutChi2prTPCcls, float, 2.5, "Chi2 per TPC clusters")
   O2_DEFINE_CONFIGURABLE(cfgUseNch, bool, false, "Use Nch for flow observables")
-  O2_DEFINE_CONFIGURABLE(cfgNbootstrap, int16_t, 10, "Number of subsamples")
+  O2_DEFINE_CONFIGURABLE(cfgNbootstrap, int, 10, "Number of subsamples")
 
   ConfigurableAxis axisVertex{"axisVertex", {20, -10, 10}, "vertex axis for histograms"};
   ConfigurableAxis axisPhi{"axisPhi", {60, 0.0, constants::math::TwoPI}, "phi axis for histograms"};
