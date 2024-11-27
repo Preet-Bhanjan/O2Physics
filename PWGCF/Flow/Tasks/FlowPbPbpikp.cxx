@@ -302,4 +302,3 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{adaptAnalysisTask<GfwPidflow>(cfgc)};
 }
- 
