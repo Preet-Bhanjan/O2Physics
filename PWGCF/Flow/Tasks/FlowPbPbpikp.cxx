@@ -183,22 +183,22 @@ struct GfwPidflow {
   template <typename TTrack>
   int GetNsigmaPID(TTrack track)
   {
-    //Computing Nsigma arrays for pion, kaon, and protons
+    // Computing Nsigma arrays for pion, kaon, and protons
     std::array<float, 3> nSigmaTPC = {track.tpcNSigmaPi(), track.tpcNSigmaKa(), track.tpcNSigmaPr()};
     std::array<float, 3> nSigmaCombined = {std::hypot(track.tpcNSigmaPi(), track.tofNSigmaPi()), std::hypot(track.tpcNSigmaKa(), track.tofNSigmaKa()), std::hypot(track.tpcNSigmaPr(), track.tofNSigmaPr())};
     int pid = -1;
     float nsigma = 3.0;
 
-    //Choose which nSigma to use
+    // Choose which nSigma to use
     std::array<float, 3> nSigmaToUse = (track.pt() > 0.4 && track.hasTOF()) ? nSigmaCombined : nSigmaTPC;
 
-    //Select particle with the lowest nsigma
+    // Select particle with the lowest nsigma
     for (int i = 0; i < 3; ++i) {
-        if (std::abs(nSigmaToUse[i]) < nsigma) {
-          pid = i;
-          nsigma = std::abs(nSigmaToUse[i]);
-        }
+      if (std::abs(nSigmaToUse[i]) < nsigma) {
+        pid = i;
+        nsigma = std::abs(nSigmaToUse[i]);
       }
+    }
     return pid + 1; // shift the pid by 1, 1 = pion, 2 = kaon, 3 = proton
   }
 
@@ -317,7 +317,7 @@ struct GfwPidflow {
       bool WithinPtPOI = (cfgCutPtPOIMin < pt) && (pt < cfgCutPtPOIMax); // within POI pT range
       bool WithinPtRef = (cfgCutPtMin < pt) && (pt < cfgCutPtMax);       // within RF pT range
 
-      //pidIndex = GetBayesPIDIndex(track);
+      // pidIndex = GetBayesPIDIndex(track);
       pidIndex = GetNsigmaPID(track);
       if (WithinPtRef)
         fGFW->Fill(track.eta(), fPtAxis->FindBin(pt) - 1, track.phi(), wacc * weff, 1);
@@ -354,3 +354,4 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{adaptAnalysisTask<GfwPidflow>(cfgc)};
 }
+ 
