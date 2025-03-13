@@ -492,10 +492,10 @@ struct FlowPbpbPikp {
     int nTot = tracks.size();
     if (nTot < 1)
       return;
-    
+
     if (!collision.sel8() || !collision.selection_bit(aod::evsel::kNoTimeFrameBorder) || !collision.selection_bit(aod::evsel::kNoITSROFrameBorder) || !collision.selection_bit(aod::evsel::kNoSameBunchPileup) || !collision.selection_bit(aod::evsel::kIsGoodZvtxFT0vsPV) || !collision.selection_bit(o2::aod::evsel::kNoCollInTimeRangeStandard))
       return;
-    
+
     int occupancy = collision.trackOccupancyInTimeRange();
     if (occupancy > cfgCutOccupancy)
       return;
