@@ -337,17 +337,17 @@ struct ResonancesGfwFlow {
       histos.add<TH3>("NUA/hPhiEtaVtxz_anlambda", ";#varphi;#eta;v_{z}", {HistType::kTH3D, {axisPhi, {64, -1.6, 1.6}, {40, -10, 10}}});
       histos.add<TH3>("NUA/hPhiEtaVtxz_phi", ";#varphi;#eta;v_{z}", {HistType::kTH3D, {axisPhi, {64, -1.6, 1.6}, {40, -10, 10}}});
 
-      histos.add<TH3>("NUA/hPhiPtCent_ref", ";#varphi;p_{T};Cent", {HistType::kTH3D, {axisPhi, {100, 0, 10}, {100, 0, 100}}});
-      histos.add<TH3>("NUA/hPhiPtCent_k0", ";#varphi;p_{T};Cent", {HistType::kTH3D, {axisPhi, {100, 0, 10}, {100, 0, 100}}});
-      histos.add<TH3>("NUA/hPhiPtCent_lambda", ";#varphi;p_{T};Cent", {HistType::kTH3D, {axisPhi, {100, 0, 10}, {100, 0, 100}}});
-      histos.add<TH3>("NUA/hPhiPtCent_anlambda", ";#varphi;p_{T};Cent", {HistType::kTH3D, {axisPhi, {100, 0, 10}, {100, 0, 100}}});
-      histos.add<TH3>("NUA/hPhiPtCent_phi", ";#varphi;p_{T};Cent", {HistType::kTH3D, {axisPhi, {100, 0, 10}, {100, 0, 100}}});
+      histos.add<TH3>("NUA/hPhiPtCent_ref", ";#varphi;p_{T};Cent", {HistType::kTH3D, {axisPhi, axisPt, {20, 0, 100}}});
+      histos.add<TH3>("NUA/hPhiPtCent_k0", ";#varphi;p_{T};Cent", {HistType::kTH3D, {axisPhi, axisPt, {20, 0, 100}}});
+      histos.add<TH3>("NUA/hPhiPtCent_lambda", ";#varphi;p_{T};Cent", {HistType::kTH3D, {axisPhi, axisPt, {20, 0, 100}}});
+      histos.add<TH3>("NUA/hPhiPtCent_anlambda", ";#varphi;p_{T};Cent", {HistType::kTH3D, {axisPhi, axisPt, {20, 0, 100}}});
+      histos.add<TH3>("NUA/hPhiPtCent_phi", ";#varphi;p_{T};Cent", {HistType::kTH3D, {axisPhi, axisPt, {20, 0, 100}}});
 
-      histos.add<TH3>("NUA/hPhiEtaPt_ref", ";#varphi;#eta;p_{T}", {HistType::kTH3D, {axisPhi, {64, -1.6, 1.6}, {100, 0, 10}}});
-      histos.add<TH3>("NUA/hPhiEtaPt_k0", ";#varphi;#eta;p_{T}", {HistType::kTH3D, {axisPhi, {64, -1.6, 1.6}, {100, 0, 10}}});
-      histos.add<TH3>("NUA/hPhiEtaPt_lambda", ";#varphi;#eta;p_{T}", {HistType::kTH3D, {axisPhi, {64, -1.6, 1.6}, {100, 0, 10}}});
-      histos.add<TH3>("NUA/hPhiEtaPt_anlambda", ";#varphi;#eta;p_{T}", {HistType::kTH3D, {axisPhi, {64, -1.6, 1.6}, {100, 0, 10}}});
-      histos.add<TH3>("NUA/hPhiEtaPt_phi", ";#varphi;#eta;p_{T}", {HistType::kTH3D, {axisPhi, {64, -1.6, 1.6}, {100, 0, 10}}});
+      histos.add<TH3>("NUA/hPhiEtaPt_ref", ";#varphi;#eta;p_{T}", {HistType::kTH3D, {axisPhi, {64, -1.6, 1.6}, axisPt}});
+      histos.add<TH3>("NUA/hPhiEtaPt_k0", ";#varphi;#eta;p_{T}", {HistType::kTH3D, {axisPhi, {64, -1.6, 1.6}, axisPt}});
+      histos.add<TH3>("NUA/hPhiEtaPt_lambda", ";#varphi;#eta;p_{T}", {HistType::kTH3D, {axisPhi, {64, -1.6, 1.6}, axisPt}});
+      histos.add<TH3>("NUA/hPhiEtaPt_anlambda", ";#varphi;#eta;p_{T}", {HistType::kTH3D, {axisPhi, {64, -1.6, 1.6}, axisPt}});
+      histos.add<TH3>("NUA/hPhiEtaPt_phi", ";#varphi;#eta;p_{T}", {HistType::kTH3D, {axisPhi, {64, -1.6, 1.6}, axisPt}});
     }
 
     if (cfgUseBootStrap) {
@@ -685,7 +685,6 @@ struct ResonancesGfwFlow {
     double cent = collision.centFT0C();
     double vtxz = collision.posZ();
     double phi = mom.Phi();
-
     phi = RecoDecay::constrainAngle(phi, 0.0, 1); // constrain azimuthal angle to [0,2pi]
 
     if ((cfgUseWeightPhiEtaVtxz && cfgUseWeightPhiPtCent) || (cfgUseWeightPhiEtaPt && cfgUseWeightPhiPtCent) || (cfgUseWeightPhiEtaVtxz && cfgUseWeightPhiEtaPt)) {
@@ -795,6 +794,16 @@ struct ResonancesGfwFlow {
           histos.fill(HIST("NUA/hPhiEtaVtxz_phi"), phi, mom.Eta(), collision.posZ());
           histos.fill(HIST("NUA/hPhiPtCent_phi"), phi, pt, collision.centFT0C());
           histos.fill(HIST("NUA/hPhiEtaPt_phi"), phi, mom.Eta(), pt);
+        }
+
+        double weff = 1;
+        double waccPOI = getAcceptancePhi(mom, collision, Phi);
+
+        // Fill Phi weights
+        if (cfgOutputNUAWeights && withinPtPOI) {
+          histos.fill(HIST("NUA/hPhiEtaVtxz_phi"), mom.Phi(), mom.Eta(), collision.posZ());
+          histos.fill(HIST("NUA/hPhiPtCent_phi"), mom.Phi(), pt, collision.centFT0C());
+          histos.fill(HIST("NUA/hPhiEtaPt_phi"), mom.Phi(), mom.Eta(), pt);
         }
 
         double weff = 1;
@@ -1143,6 +1152,7 @@ struct ResonancesGfwFlow {
           histos.fill(HIST("hLambdas"), 1);
       }
     } // End of v0 loop
+    
     fillResoProfile(corrconfigs.at(0), HIST("Refc22"), cent, fPhiMassAxis);
     fillResoProfile(corrconfigs.at(1), HIST("Refc24"), cent, fPhiMassAxis);
     if (cfgUsePhi) {
@@ -1171,11 +1181,12 @@ struct ResonancesGfwFlow {
 
     // bootstraping
     if (cfgUseBootStrap) {
-      TRandom3* rand = new TRandom3(0);
-      double r = rand->Rndm();
+      double r = fRndm->Rndm();
       int bootId = static_cast<int>(r * 10);
+      
       fillProfileBoot(corrconfigs.at(0), refC22Boot[bootId], cent);
       fillProfileBoot(corrconfigs.at(1), refC24Boot[bootId], cent);
+
       if (cfgUsePhi) {
         fillProfileBoot3D(corrconfigs.at(2), phiD22FPtBoot[bootId], cent, fPhiMassAxis);
         fillProfileBoot3D(corrconfigs.at(3), phiD24FPtBoot[bootId], cent, fPhiMassAxis);
