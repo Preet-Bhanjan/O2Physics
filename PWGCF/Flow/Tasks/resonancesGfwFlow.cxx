@@ -1152,7 +1152,7 @@ struct ResonancesGfwFlow {
           histos.fill(HIST("hLambdas"), 1);
       }
     } // End of v0 loop
-    
+
     fillResoProfile(corrconfigs.at(0), HIST("Refc22"), cent, fPhiMassAxis);
     fillResoProfile(corrconfigs.at(1), HIST("Refc24"), cent, fPhiMassAxis);
     if (cfgUsePhi) {
@@ -1183,7 +1183,7 @@ struct ResonancesGfwFlow {
     if (cfgUseBootStrap) {
       double r = fRndm->Rndm();
       int bootId = static_cast<int>(r * 10);
-      
+
       fillProfileBoot(corrconfigs.at(0), refC22Boot[bootId], cent);
       fillProfileBoot(corrconfigs.at(1), refC24Boot[bootId], cent);
 
