@@ -134,6 +134,15 @@ struct PidDiHadron {
     kUseVertexITSTPC,
     kUseTVXinTRD
   };
+  enum {
+    kCharged = 0,
+    kPions,
+    kKaons,
+    kProtons,
+    kK0,
+    kLambda,
+    kPhi
+  };
 
   O2_DEFINE_CONFIGURABLE(cfgCutVertex, float, 10.0f, "Accepted z-vertex range")
   O2_DEFINE_CONFIGURABLE(cfgCutPtPOIMin, float, 0.2f, "minimum accepted track pT")
@@ -280,11 +289,11 @@ struct PidDiHadron {
 
     // Creating mass axis depending on particle - 4 = kshort, 5 = lambda, 6 = phi
     AxisSpec massAxisReso = {10, 0, 1, "mass"};
-    if (cfgPIDParticle == 4)
+    if (cfgPIDParticle == kK0)
       massAxisReso = {resoSwitchVals[K0][kMassBins], resoCutVals[K0][kMassMin], resoCutVals[K0][kMassMax], "M_{#pi^{+}#pi^{-}} (GeV/c^{2})"};
-    if (cfgPIDParticle == 5)
+    if (cfgPIDParticle == kLambda)
       massAxisReso = {resoSwitchVals[LAMBDA][kMassBins], resoCutVals[LAMBDA][kMassMin], resoCutVals[LAMBDA][kMassMax], "M_{p#pi^{-}} (GeV/c^{2})"};
-    if (cfgPIDParticle == 6)
+    if (cfgPIDParticle == kPhi)
       massAxisReso = {resoSwitchVals[PHI][kMassBins], resoCutVals[PHI][kMassMin], resoCutVals[PHI][kMassMax], "M_{K^{+}K^{-}} (GeV/c^{2})"};
 
     // Event Counter
@@ -307,7 +316,7 @@ struct PidDiHadron {
       histos.get<TH1>(HIST("hEventCount"))->GetXaxis()->SetBinLabel(kUseTVXinTRD + 1, "kTVXinTRD");
     }
 
-    if (cfgPIDParticle == 4) { // For K0
+    if (cfgPIDParticle == kK0) { // For K0
       histos.add("PiPlusTPC_K0", "", {HistType::kTH2D, {{axisPt, axisNsigmaTPC}}});
       histos.add("PiMinusTPC_K0", "", {HistType::kTH2D, {{axisPt, axisNsigmaTPC}}});
       histos.add("PiPlusTOF_K0", "", {HistType::kTH2D, {{axisPt, axisNsigmaTOF}}});
@@ -327,7 +336,7 @@ struct PidDiHadron {
       histos.get<TH1>(HIST("hK0Count"))->GetXaxis()->SetBinLabel(9, "Proper lifetime");
       histos.get<TH1>(HIST("hK0Count"))->GetXaxis()->SetBinLabel(10, "Daughter track selection");
     }
-    if (cfgPIDParticle == 5) { // For Lambda
+    if (cfgPIDParticle == kLambda) { // For Lambda
       histos.add("PrPlusTPC_L", "", {HistType::kTH2D, {{axisPt, axisNsigmaTPC}}});
       histos.add("PiMinusTPC_L", "", {HistType::kTH2D, {{axisPt, axisNsigmaTPC}}});
       histos.add("PrPlusTOF_L", "", {HistType::kTH2D, {{axisPt, axisNsigmaTOF}}});
@@ -347,7 +356,7 @@ struct PidDiHadron {
       histos.get<TH1>(HIST("hLambdaCount"))->GetXaxis()->SetBinLabel(9, "Proper lifetime");
       histos.get<TH1>(HIST("hLambdaCount"))->GetXaxis()->SetBinLabel(10, "Daughter track selection");
     }
-    if (cfgPIDParticle == 6) { // For Phi
+    if (cfgPIDParticle == kPhi) { // For Phi
       histos.add("KaPlusTPC", "", {HistType::kTH2D, {{axisPt, axisNsigmaTPC}}});
       histos.add("KaMinusTPC", "", {HistType::kTH2D, {{axisPt, axisNsigmaTPC}}});
       histos.add("KaPlusTOF", "", {HistType::kTH2D, {{axisPt, axisNsigmaTOF}}});
@@ -394,7 +403,7 @@ struct PidDiHadron {
       histos.add("zVtx", "zVtx", {HistType::kTH1D, {axisVertex}});
       histos.add("zVtx_used", "zVtx_used", {HistType::kTH1D, {axisVertex}});
 
-      if (cfgPIDParticle == 0 || cfgPIDParticle == 1 || cfgPIDParticle == 2 || cfgPIDParticle == 3) {
+      if (cfgPIDParticle == kCharged || cfgPIDParticle == kPions || cfgPIDParticle == kKaons || cfgPIDParticle == kProtons) {
         histos.add("Phi", "Phi", {HistType::kTH1D, {axisPhi}});
         histos.add("Eta", "Eta", {HistType::kTH1D, {axisEta}});
         histos.add("EtaCorrected", "EtaCorrected", {HistType::kTH1D, {axisEta}});
@@ -403,7 +412,7 @@ struct PidDiHadron {
         histos.add("Trig_hist", "", {HistType::kTHnSparseF, {{axisSample, axisVertex, axisPtTrigger}}});
       }
 
-      if (cfgPIDParticle == 4 || cfgPIDParticle == 5 || cfgPIDParticle == 6) {
+      if (cfgPIDParticle == kK0 || cfgPIDParticle == kLambda || cfgPIDParticle == kPhi) {
         histos.add("Trig_histReso", "", {HistType::kTHnSparseF, {{axisSample, axisVertex, axisPtTrigger, massAxisReso}}});
       }
     }
@@ -434,12 +443,12 @@ struct PidDiHadron {
     };
     std::vector<AxisSpec> userAxis;
 
-    if (cfgPIDParticle == 0 || cfgPIDParticle == 1 || cfgPIDParticle == 2 || cfgPIDParticle == 3) {
+    if (cfgPIDParticle == kCharged || cfgPIDParticle == kPions || cfgPIDParticle == kKaons || cfgPIDParticle == kProtons) {
       same.setObject(new CorrelationContainer("sameEvent", "sameEvent", corrAxis, effAxis, userAxis));
       mixed.setObject(new CorrelationContainer("mixedEvent", "mixedEvent", corrAxis, effAxis, userAxis));
     }
 
-    if (cfgPIDParticle == 4 || cfgPIDParticle == 5 || cfgPIDParticle == 6) {
+    if (cfgPIDParticle == kK0 || cfgPIDParticle == kLambda || cfgPIDParticle == kPhi) {
       sameReso.setObject(new CorrelationContainer("sameEvent", "sameEvent", corrAxisReso, effAxis, userAxis));
       mixedReso.setObject(new CorrelationContainer("mixedEvent", "mixedEvent", corrAxisReso, effAxis, userAxis));
     }
@@ -762,14 +771,14 @@ struct PidDiHadron {
       double resoMass = -1;
 
       // 4 = kshort, 5 = lambda, 6 = phi
-      if (cfgPIDParticle == 4) {
+      if (cfgPIDParticle == kK0) {
         if (!selectionK0(track1, posZ, posY, posX))
           continue; // Reject if called for K0 but V0 is not K0
 
         resoMass = track1.mK0Short();
       }
 
-      if (cfgPIDParticle == 5) {
+      if (cfgPIDParticle == kLambda) {
         if (!selectionLambda(track1, posZ, posY, posX))
           continue; // Reject if called for Lambda but V0 is not lambda
 
@@ -784,7 +793,7 @@ struct PidDiHadron {
 
         if (!trackSelected(track2))
           continue;
-        if (track2.pt() < 0.2 || track2.pt() > 3.0) // Select associated particles in the pt range 0.2 - 3.0 GeV/c
+        if (track2.pt() < cfgCutPtMin || track2.pt() > cfgCutPtMax) // Select associated particles in the pt range 0.2 - 3.0 GeV/c
           continue;
         if (mEfficiency) {
           associatedWeight = efficiencyAssociatedCache[track2.filteredIndex()];
