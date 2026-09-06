@@ -68,6 +68,18 @@ using namespace constants::math;
 
 #define O2_DEFINE_CONFIGURABLE(NAME, TYPE, DEFAULT, HELP) Configurable<TYPE> NAME{#NAME, (DEFAULT), (HELP)}; // NOLINT(bugprone-macro-parentheses)
 
+template <typename T, typename P>
+auto readMatrix(Array2D<T> const& mat, P& array)
+{
+  for (auto i = 0; i < static_cast<int>(mat.rows); ++i) {
+    for (auto j = 0; j < static_cast<int>(mat.cols); ++j) {
+      array[i][j] = mat(i, j);
+    }
+  }
+
+  return;
+}
+
 static constexpr std::array<std::array<float, 3>, 20> LongArrayFloat = {{{{1.1, 2.1, 3.1}}, {{1.2, 2.2, 3.2}}, {{1.3, 2.3, 3.3}}, {{-1.1, -2.1, -3.1}}, {{-1.2, -2.2, -3.2}}, {{-1.3, -2.3, -3.3}}, {{1.1, 1.1, 1.1}}, {{1.2, 1.2, 1.2}}, {{1.3, 1.3, 1.3}}, {{-1.1, -1.1, -1.1}}, {{-1.2, -1.2, -1.2}}, {{-1.3, -1.3, -1.3}}, {{1.1, 1.1, 1.1}}, {{1.2, 1.2, 1.2}}, {{1.3, 1.3, 1.3}}, {{-1.1, -1.1, -1.1}}, {{-1.2, -1.2, -1.2}}, {{-1.3, -1.3, -1.3}}, {{1.1, 1.1, 1.1}}, {{1.2, 1.2, 1.2}}}};
 static constexpr std::array<std::array<int, 3>, 20> LongArrayInt = {{{{1, 2, 3}}, {{1, 2, 3}}, {{1, 2, 3}}, {{0, 0, 0}}, {{0, 0, 0}}, {{0, 0, 0}}, {{1, 1, 1}}, {{1, 1, 1}}, {{1, 1, 1}}, {{0, 0, 0}}, {{0, 0, 0}}, {{0, 0, 0}}, {{1, 1, 1}}, {{1, 1, 1}}, {{1, 1, 1}}, {{0, 0, 0}}, {{0, 0, 0}}, {{0, 0, 0}}, {{1, 1, 1}}, {{1, 1, 1}}}};
 
@@ -215,6 +227,10 @@ struct CorrReso {
 
   HistogramRegistry registry{"registry"};
 
+  // For Labelled array value containers
+  std::array<std::array<float, 3>, 13> resoCutVals{};
+  std::array<std::array<int, 3>, 6> resoSwitchVals{};
+
   // define global variables
   TRandom3* gRandom = new TRandom3();
 
@@ -331,26 +347,29 @@ struct CorrReso {
       return;
     }
 
+    readMatrix(cfgPIDConfigs.cfgResoCuts->getData(), resoCutVals);
+    readMatrix(cfgPIDConfigs.cfgResoSwitches->getData(), resoSwitchVals);
+
     // Creating mass axis depending on particle - 4 = kshort, 5 = lambda, 6 = phi
     AxisSpec axisInvMass = {10, 0, 1, "mass"};
     if (cfgPIDConfigs.cfgPIDParticle == kK0) {
-      const auto bins = cfgPIDConfigs.cfgResoSwitches->getData()[kMassBins][iK0];
-      const auto min = cfgPIDConfigs.cfgResoCuts->getData()[kMassMin][iK0];
-      const auto max = cfgPIDConfigs.cfgResoCuts->getData()[kMassMax][iK0];
+      const auto bins = resoSwitchVals[kMassBins][iK0];
+      const auto min = resoCutVals[kMassMin][iK0];
+      const auto max = resoCutVals[kMassMax][iK0];
 
       axisInvMass = {bins, min, max, "M_{#pi^{+}#pi^{-}} (GeV/c^{2})"};
     }
     if (cfgPIDConfigs.cfgPIDParticle == kLambda) {
-      const auto bins = cfgPIDConfigs.cfgResoSwitches->getData()[kMassBins][iLambda];
-      const auto min = cfgPIDConfigs.cfgResoCuts->getData()[kMassMin][iLambda];
-      const auto max = cfgPIDConfigs.cfgResoCuts->getData()[kMassMax][iLambda];
+      const auto bins = resoSwitchVals[kMassBins][iLambda];
+      const auto min = resoCutVals[kMassMin][iLambda];
+      const auto max = resoCutVals[kMassMax][iLambda];
 
       axisInvMass = {bins, min, max, "M_{p#pi} (GeV/c^{2})"};
     }
     if (cfgPIDConfigs.cfgPIDParticle == kPhi) {
-      const auto bins = cfgPIDConfigs.cfgResoSwitches->getData()[kMassBins][iPhi];
-      const auto min = cfgPIDConfigs.cfgResoCuts->getData()[kMassMin][iPhi];
-      const auto max = cfgPIDConfigs.cfgResoCuts->getData()[kMassMax][iPhi];
+      const auto bins = resoSwitchVals[kMassBins][iPhi];
+      const auto min = resoCutVals[kMassMin][iPhi];
+      const auto max = resoCutVals[kMassMax][iPhi];
 
       axisInvMass = {bins, min, max, "M_{K^{+}K^{-}} (GeV/c^{2})"};
     }
@@ -1065,38 +1084,38 @@ struct CorrReso {
     auto negtrack = candidate.template negTrack_as<FilteredTracks>();
 
     registry.fill(HIST("hK0Count"), 0.5);
-    if (postrack.pt() < cfgPIDConfigs.cfgResoCuts->getData()[kPosTrackPt][iK0] || negtrack.pt() < cfgPIDConfigs.cfgResoCuts->getData()[kNegTrackPt][iK0])
+    if (postrack.pt() < resoCutVals[kPosTrackPt][iK0] || negtrack.pt() < resoCutVals[kNegTrackPt][iK0])
       return false;
     registry.fill(HIST("hK0Count"), 1.5);
-    if (mk0 < cfgPIDConfigs.cfgResoCuts->getData()[kMassMin][iK0] || mk0 > cfgPIDConfigs.cfgResoCuts->getData()[kMassMax][iK0])
+    if (mk0 < resoCutVals[kMassMin][iK0] || mk0 > resoCutVals[kMassMax][iK0])
       return false;
     registry.fill(HIST("hK0Count"), 2.5);
     // Rapidity correction
-    if (std::abs(candidate.yK0Short()) > cfgPIDConfigs.cfgResoCuts->getData()[kRapidity][iK0])
+    if (std::abs(candidate.yK0Short()) > resoCutVals[kRapidity][iK0])
       return false;
     registry.fill(HIST("hK0Count"), 3.5);
     // DCA cuts for K0short
-    if (std::abs(candidate.dcapostopv()) < cfgPIDConfigs.cfgResoCuts->getData()[kDCAPosToPVMin][iK0] || std::abs(candidate.dcanegtopv()) < cfgPIDConfigs.cfgResoCuts->getData()[kDCANegToPVMin][iK0])
+    if (std::abs(candidate.dcapostopv()) < resoCutVals[kDCAPosToPVMin][iK0] || std::abs(candidate.dcanegtopv()) < resoCutVals[kDCANegToPVMin][iK0])
       return false;
     registry.fill(HIST("hK0Count"), 4.5);
-    if (cfgPIDConfigs.cfgResoSwitches->getData()[kUseDCABetDaug][iK0] && std::abs(candidate.dcaV0daughters()) > cfgPIDConfigs.cfgResoCuts->getData()[kDCABetDaug][iK0])
+    if (resoSwitchVals[kUseDCABetDaug][iK0] && std::abs(candidate.dcaV0daughters()) > resoCutVals[kDCABetDaug][iK0])
       return false;
     registry.fill(HIST("hK0Count"), 5.5);
     // v0 radius cuts
-    if (cfgPIDConfigs.cfgResoSwitches->getData()[kUseV0Radius][iK0] && (candidate.v0radius() < cfgPIDConfigs.cfgResoCuts->getData()[kRadiusMin][iK0] || candidate.v0radius() > cfgPIDConfigs.cfgResoCuts->getData()[kRadiusMax][iK0]))
+    if (resoSwitchVals[kUseV0Radius][iK0] && (candidate.v0radius() < resoCutVals[kRadiusMin][iK0] || candidate.v0radius() > resoCutVals[kRadiusMax][iK0]))
       return false;
     registry.fill(HIST("hK0Count"), 6.5);
     // cosine pointing angle cuts
-    if (cfgPIDConfigs.cfgResoSwitches->getData()[kUseCosPA][iK0] && candidate.v0cosPA() < cfgPIDConfigs.cfgResoCuts->getData()[kCosPA][iK0])
+    if (resoSwitchVals[kUseCosPA][iK0] && candidate.v0cosPA() < resoCutVals[kCosPA][iK0])
       return false;
     registry.fill(HIST("hK0Count"), 7.5);
     // Proper lifetime
     float cTauK0 = candidate.distovertotmom(posX, posY, posZ) * massK0Short;
-    if (cfgPIDConfigs.cfgResoSwitches->getData()[kUseProperLifetime][iK0] && cTauK0 > cfgPIDConfigs.cfgResoCuts->getData()[kLifeTime][iK0])
+    if (resoSwitchVals[kUseProperLifetime][iK0] && cTauK0 > resoCutVals[kLifeTime][iK0])
       return false;
     registry.fill(HIST("hK0Count"), 8.5);
     // ArmenterosPodolanskiCut
-    if (cfgPIDConfigs.cfgResoSwitches->getData()[kUseArmPodCut][iK0] && (candidate.qtarm() / std::abs(candidate.alpha())) < cfgPIDConfigs.cfgResoCuts->getData()[kArmPodMinVal][iK0])
+    if (resoSwitchVals[kUseArmPodCut][iK0] && (candidate.qtarm() / std::abs(candidate.alpha())) < resoCutVals[kArmPodMinVal][iK0])
       return false;
     registry.fill(HIST("hK0Count"), 9.5);
     // Selection on V0 daughters
@@ -1128,13 +1147,13 @@ struct CorrReso {
     auto negtrack = candidate.template negTrack_as<FilteredTracks>();
 
     registry.fill(HIST("hLambdaCount"), 0.5);
-    if (postrack.pt() < cfgPIDConfigs.cfgResoCuts->getData()[kPosTrackPt][iLambda] || negtrack.pt() < cfgPIDConfigs.cfgResoCuts->getData()[kNegTrackPt][iLambda])
+    if (postrack.pt() < resoCutVals[kPosTrackPt][iLambda] || negtrack.pt() < resoCutVals[kNegTrackPt][iLambda])
       return false;
 
     registry.fill(HIST("hLambdaCount"), 1.5);
-    if (mlambda > cfgPIDConfigs.cfgResoCuts->getData()[kMassMin][iLambda] && mlambda < cfgPIDConfigs.cfgResoCuts->getData()[kMassMax][iLambda])
+    if (mlambda > resoCutVals[kMassMin][iLambda] && mlambda < resoCutVals[kMassMax][iLambda])
       isL = true;
-    if (mantilambda > cfgPIDConfigs.cfgResoCuts->getData()[kMassMin][iLambda] && mantilambda < cfgPIDConfigs.cfgResoCuts->getData()[kMassMax][iLambda])
+    if (mantilambda > resoCutVals[kMassMin][iLambda] && mantilambda < resoCutVals[kMassMax][iLambda])
       isAL = true;
 
     if (!isL && !isAL) {
@@ -1143,35 +1162,35 @@ struct CorrReso {
     registry.fill(HIST("hLambdaCount"), 2.5);
 
     // Rapidity correction
-    if (std::abs(candidate.yLambda()) > cfgPIDConfigs.cfgResoCuts->getData()[kRapidity][iLambda])
+    if (std::abs(candidate.yLambda()) > resoCutVals[kRapidity][iLambda])
       return false;
     registry.fill(HIST("hLambdaCount"), 3.5);
 
     // DCA cuts for lambda and antilambda
-    if (isL && (std::abs(candidate.dcapostopv()) < cfgPIDConfigs.cfgResoCuts->getData()[kDCAPosToPVMin][iLambda] || std::abs(candidate.dcanegtopv()) < cfgPIDConfigs.cfgResoCuts->getData()[kDCANegToPVMin][iLambda])) {
+    if (isL && (std::abs(candidate.dcapostopv()) < resoCutVals[kDCAPosToPVMin][iLambda] || std::abs(candidate.dcanegtopv()) < resoCutVals[kDCANegToPVMin][iLambda])) {
       isL = false;
     }
-    if (isAL && (std::abs(candidate.dcapostopv()) < cfgPIDConfigs.cfgResoCuts->getData()[kDCANegToPVMin][iLambda] || std::abs(candidate.dcanegtopv()) < cfgPIDConfigs.cfgResoCuts->getData()[kDCAPosToPVMin][iLambda])) {
+    if (isAL && (std::abs(candidate.dcapostopv()) < resoCutVals[kDCANegToPVMin][iLambda] || std::abs(candidate.dcanegtopv()) < resoCutVals[kDCAPosToPVMin][iLambda])) {
       isAL = false;
     }
     if (!isL && !isAL) {
       return false;
     }
     registry.fill(HIST("hLambdaCount"), 4.5);
-    if (cfgPIDConfigs.cfgResoSwitches->getData()[kUseDCABetDaug][iLambda] && std::abs(candidate.dcaV0daughters()) > cfgPIDConfigs.cfgResoCuts->getData()[kDCABetDaug][iLambda])
+    if (resoSwitchVals[kUseDCABetDaug][iLambda] && std::abs(candidate.dcaV0daughters()) > resoCutVals[kDCABetDaug][iLambda])
       return false;
     registry.fill(HIST("hLambdaCount"), 5.5);
     // v0 radius cuts
-    if (cfgPIDConfigs.cfgResoSwitches->getData()[kUseV0Radius][iLambda] && (candidate.v0radius() < cfgPIDConfigs.cfgResoCuts->getData()[kRadiusMin][iLambda] || candidate.v0radius() > cfgPIDConfigs.cfgResoCuts->getData()[kRadiusMax][iLambda]))
+    if (resoSwitchVals[kUseV0Radius][iLambda] && (candidate.v0radius() < resoCutVals[kRadiusMin][iLambda] || candidate.v0radius() > resoCutVals[kRadiusMax][iLambda]))
       return false;
     registry.fill(HIST("hLambdaCount"), 6.5);
     // cosine pointing angle cuts
-    if (cfgPIDConfigs.cfgResoSwitches->getData()[kUseCosPA][iLambda] && candidate.v0cosPA() < cfgPIDConfigs.cfgResoCuts->getData()[kCosPA][iLambda])
+    if (resoSwitchVals[kUseCosPA][iLambda] && candidate.v0cosPA() < resoCutVals[kCosPA][iLambda])
       return false;
     registry.fill(HIST("hLambdaCount"), 7.5);
     // Proper lifetime
     float cTauLambda = candidate.distovertotmom(posX, posY, posZ) * massLambda;
-    if (cfgPIDConfigs.cfgResoSwitches->getData()[kUseProperLifetime][iLambda] && cTauLambda > cfgPIDConfigs.cfgResoCuts->getData()[kLifeTime][iLambda])
+    if (resoSwitchVals[kUseProperLifetime][iLambda] && cTauLambda > resoCutVals[kLifeTime][iLambda])
       return false;
     registry.fill(HIST("hLambdaCount"), 8.5);
 
